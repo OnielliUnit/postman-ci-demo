@@ -1,0 +1,1043 @@
+{
+	"info": {
+		"_postman_id": "111604be-6618-4708-b045-76403f0d85c8",
+		"name": "ClientRestAPI",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Совершение исходящего вызова",
+			"item": [
+				{
+					"name": "call_back",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "c1650150-819e-4410-ba31-839ad804f626",
+								"exec": [
+									"/*\r",
+									"В поле request_number указываем номер Б. Пользователь подтягивается из переменной user, домен из domain. from_pin не обяззательно.\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"request_number\": \"73833048305\",\r",
+									"\t\"from_sipuri\": pm.environment.get('user') + '@' + pm.environment.get('domain'),\r",
+									"\t\"from_pin\": \"\"\r",
+									"};\r",
+									"\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "30aeda49-dce8-48af-90d8-78c0d7da2460",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"pm.environment.get('sessionId'); pm.environment.set(('sessionId'), jsonData.session_id); //We write the session to the variable - sessionId\r",
+									"console.log(\"Получили ID сесии - \" + jsonData.session_id);\r",
+									"\r",
+									"if (jsonData.result != \"301\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"301\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"value": "{{vpbx_api_key}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}call_back",
+							"host": [
+								"{{url}}call_back"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Запрос на формирование файла с выгрузкой журнала",
+			"item": [
+				{
+					"name": "domain_call_history",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "226b34f5-ad4f-4cbe-a2ec-fec675e1c189",
+								"exec": [
+									" pm.sendRequest({\r",
+									"\turl: 'https://api.ivans.one/token',\r",
+									"\tmethod: 'POST',\r",
+									"\theader: {\r",
+									"            'Content-Type': 'application/json'\r",
+									"\t},\r",
+									"\tbody: {\r",
+									"        mode: 'raw',\r",
+									"        raw: JSON.stringify({\r",
+									"\t\"username\": \"qa\",\r",
+									"\t\"password\": \"123456\"\r",
+									"})\r",
+									"    }\r",
+									"}, function(err, response) {\r",
+									"\r",
+									"    pm.globals.set(\"X-CSRF-TOKEN\", \"Bearer \" + response.json().token);\r",
+									"});\r",
+									"\r",
+									"/*\r",
+									"Диапазон дат подтягивается автоматически\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"date_start\": pm.globals.get('date_start') + \" 00:00:00\",\r",
+									"    \"date_end\": pm.globals.get('date_end') + \" 23:59:59\",\r",
+									"\t\"direction\": 0,\r",
+									"\t\"state\": 0\r",
+									"}\r",
+									"\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "40a428a0-3118-4e51-84a2-2def50f722a4",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"let order_idComparisonResult = pm.globals.get('order_idComparisonResult'); pm.globals.set(('order_idComparisonResult'), jsonData.order_id);\r",
+									"\r",
+									"let order_id = {\r",
+									"\t\"order_id\": jsonData.order_id\r",
+									"};\r",
+									"pm.globals.set(\"order_id\", JSON.stringify(order_id))\r",
+									"\r",
+									"if (resultJSON != \"-1\" && resultJSON != \"-2\" && resultJSON != \"-100\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"-2\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage] = false;\r",
+									"} else if (jsonData.result == \"-100\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. Срочно обратиться в Светец \" + jsonData.resultMessage] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"type": "text",
+								"value": "{{vpbx_api_key}}"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}domain_call_history",
+							"host": [
+								"{{url}}domain_call_history"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Экспорт адресной книги домена",
+			"item": [
+				{
+					"name": "users_info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "bac1529e-69cd-43e1-b1c3-7a1333f20fac",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"if (resultJSON != \"-403\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"-403\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. Указан некорректный домен\"] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "533d5e89-247e-4657-84f5-99848e43aaec",
+								"exec": [
+									"/*\r",
+									"Домен получаем из переменной domain. user_name и user_pin необязательные параметры\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"domain\": pm.environment.get('domain'),\r",
+									"\t\"user_name\": \"\",\r",
+									"\t\"user_pin\": \"\"\r",
+									"};\r",
+									"\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"value": "{{vpbx_api_key}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}users_info",
+							"host": [
+								"{{url}}users_info"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "noauth"
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "ff1ca1b1-f3d3-4ab8-9952-9991dc54c246",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "1a6d3849-c099-445b-a73a-b1527b39364d",
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Проверка ограничений на исходящую связь",
+			"item": [
+				{
+					"name": "restricting_user_outgoing_calls/get",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "8bfd9ec6-aeec-4498-8bf4-0821b73d050a",
+								"exec": [
+									"/*\r",
+									"Пользователь подтягивается из переменной user\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"user_name\": pm.environment.get('user')\r",
+									"}\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "851a7e40-f9f8-4bb2-8731-bf5eb9258b1d",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"if (resultJSON != \"-1\" && jsonData.result != \"40\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"40\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"value": "{{vpbx_api_key}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}restricting_user_outgoing_calls/get",
+							"host": [
+								"{{url}}restricting_user_outgoing_calls"
+							],
+							"path": [
+								"get"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Установка ограничений исходящей связи пользователя",
+			"item": [
+				{
+					"name": "restricting_user_outgoing_calls/set",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "53cadaa1-c495-4760-9a54-e5c285c0f4ad",
+								"exec": [
+									"/*\r",
+									"Пользователь подтягивается из переменной user. \r",
+									"0 - Без ограничений\r",
+									"1 - Запрет международных\r",
+									"2 - Запрет междугородных и международных\r",
+									"3 - Запрет всех вызовов, кроме внутренних\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"user_name\": pm.environment.get('user'),\r",
+									"\t\"user_pin\": \"\",\r",
+									"\t\"restricting_outgoing_calls\": 0\r",
+									"}\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "da6cf92c-7c02-4379-8f62-be9f3f586db9",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"if (resultJSON != \"-1\" && jsonData.result != \"40\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно. Ограничения установлены: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"40\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Ошибка. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Ошибка. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"value": "{{vpbx_api_key}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}restricting_user_outgoing_calls/set",
+							"host": [
+								"{{url}}restricting_user_outgoing_calls"
+							],
+							"path": [
+								"set"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Истории списаний и начислений по вызовам пользователя",
+			"item": [
+				{
+					"name": "user_calls_charges",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "a778852b-a667-40d1-b178-72a7cdfe53ea",
+								"exec": [
+									"/*\r",
+									"В поле user_name имя пользователя подставляется автоматически. Диапазон дат устанавливается вручную\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"user_name\": pm.environment.get('user'),\r",
+									"\t\"date_start\": pm.globals.get('date_start') + \" 00:00:00\",\r",
+									"\t\"date_end\": pm.globals.get('date_end') + \" 23:59:59\",\r",
+									"\t\"shift\": 0,\r",
+									"\t\"page_size\": 100\r",
+									"};\r",
+									"\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "a546638e-b357-4075-bc9f-7f02a17bfb37",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"if (resultJSON != \"-1\" && resultJSON != \"-101\" && jsonData.number_of_calls != 0 && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"0\" && jsonData.number_of_calls == 0 && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. Передан пустой массив: \" + \"\\n\" + jsonString] = false;\r",
+									"} else if (jsonData.result == \"-101\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. Диапазон превышает 31 день!: \" + \"\\n\" + jsonString] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"type": "text",
+								"value": "{{vpbx_api_key}}"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}user_calls_charges",
+							"host": [
+								"{{url}}user_calls_charges"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Подробная информация о вызове",
+			"item": [
+				{
+					"name": "call_info",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "b6351517-a686-4998-acb2-f36682e2535d",
+								"exec": [
+									"/*\r",
+									"Сессию получаем автоматически из переменной sessionId.\r",
+									"*/\r",
+									"let json = {\r",
+									"\tsession_id: pm.environment.get('sessionId')\r",
+									"};\r",
+									"\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "c95cbd3d-6aee-40ac-90cb-a2e8dbee6367",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let jsonString = JSON.stringify(JSON.parse(responseBody), null, 2);\r",
+									"\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"if (resultJSON != \"-1\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно: \" + \"\\n\" + jsonString] = true;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage + \" Проверьте передаваемый параметр session_id:\"] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage + \". Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"value": "{{vpbx_api_key}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}call_info",
+							"host": [
+								"{{url}}call_info"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Запрос записи разговора",
+			"item": [
+				{
+					"name": "get_record",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "06020c53-f2f4-472b-ad07-01af95175141",
+								"exec": [
+									"/*\r",
+									"Сессию получаем автоматически из переменной sessionId, ip - адресс подтягивается сам.\r",
+									"*/\r",
+									"let json = {\r",
+									"\t\"session_id\": pm.environment.get('sessionId'),\r",
+									"    \"ip_adress\": \"10.243.56.8\"\r",
+									"};\r",
+									"\r",
+									"pm.variables.set(\"json\", JSON.stringify(json));\r",
+									"\r",
+									"const utils = eval(globals.loadUtils);\r",
+									"utils.signBody();"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "2abe6ab0-4de6-4399-8a51-6f6b0846e77a",
+								"exec": [
+									"let jsonData = JSON.parse(responseBody);\r",
+									"let resultJSON = jsonData.result;\r",
+									"console.log(resultJSON);\r",
+									"\r",
+									"let urlGetRecord = jsonData.url;\r",
+									"console.log(urlGetRecord);\r",
+									"\r",
+									"let urlResult = pm.globals.get('urlGetRecord');\r",
+									"pm.globals.set(('urlGetRecord'), urlGetRecord);\r",
+									"\r",
+									"if (jsonData.url !== \"\" && resultJSON != \"21\" && resultJSON != \"20\" && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно. Ссылка на скачивание - \" + jsonData.url] = true;\r",
+									" } else if (jsonData.result == \"-1\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage] = false;   \r",
+									"} else if (jsonData.result == \"21\" && responseCode.code === 200) {\r",
+									"\ttests[jsonData.resultMessage + \". Запись разговоров не подключена\"] = false;\r",
+									"} else if (jsonData.result == \"20\" && responseCode.code === 200) {\r",
+									"\ttests[\"Не успешно. \" + jsonData.resultMessage] = false;\r",
+									"} else if (jsonData.result == \"-1\" && responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true,
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"type": "text",
+								"value": "{{vpbx_api_key}}"
+							},
+							{
+								"key": "X-Client-Sign",
+								"type": "text",
+								"value": "{{sign}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{content_body}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}get_record",
+							"host": [
+								"{{url}}get_record"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		},
+		{
+			"name": "Запрос на скачивание файла",
+			"item": [
+				{
+					"name": "download_call_history",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"id": "c0f2fcb3-f6c6-4b62-9c48-695bcef250e0",
+								"exec": [
+									" pm.sendRequest({\r",
+									"\turl: 'https://api.ivans.one/hfc',\r",
+									"\tmethod: 'POST',\r",
+									"\theader: {\r",
+									"            'Content-Type': 'application/json',\r",
+									"            'accept': 'application/json',\r",
+									"            'authorization': pm.globals.get('X-CSRF-TOKEN')\r",
+									"\t},\r",
+									"\tbody: {\r",
+									"        mode: 'raw',\r",
+									"        raw: pm.globals.get('order_id')\r",
+									"    }\r",
+									"}, function(err, response) {\r",
+									"\r",
+									"    console.log('Получили ответ от сервера: ' + JSON.stringify(response.json()) + ' Начинаю процедуру сравнения');\r",
+									"\r",
+									"    if(response.json().order_id == pm.globals.get('order_idComparisonResult') && response.json().result == '0'){\r",
+									"\r",
+									"        let APImethodComparisonResultOk = 'Условия сравнения совпадают!!!'\r",
+									"        console.log(APImethodComparisonResultOk);\r",
+									"        let  = pm.globals.get('APImethodComparisonResult'); pm.globals.set(('APImethodComparisonResult'), APImethodComparisonResultOk);\r",
+									"\r",
+									"    sign = CryptoJS.SHA256(\r",
+									"\tpm.variables.get(\"vpbx_api_key\") +\r",
+									"\tpm.variables.get(\"order_id\") +\r",
+									"\tpm.variables.get(\"vpbx_api_salt\")\r",
+									").toString();\r",
+									"\r",
+									"    pm.globals.set(('sign'), sign);\r",
+									"} else {\r",
+									"    console.log('Условия не совпадают' + response.json())\r",
+									"}\r",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"id": "e804cbba-675d-4510-b74d-0cc55c3bac25",
+								"exec": [
+									"if (pm.globals.get('APImethodComparisonResult') == pm.globals.get('APImethodComparisonResult') && responseCode.code === 200) {\r",
+									"\ttests[\"Успешно. \" + pm.globals.get('APImethodComparisonResult') + \" Журнал получен\"] = true;\r",
+									"} else if (responseCode.code === 401) {\r",
+									"\ttests[\"Не успешно. Проверьте на корректность заголовок X-Client-ID\"] = false;\r",
+									"} else if (responseCode.code === 404) {\r",
+									"\ttests[\"Не успешно. Цифровые подписи не совпадают\"] = false;\r",
+									"} else {\r",
+									"\ttests[\"Пустое тело ответа\"] = false;\r",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"protocolProfileBehavior": {
+						"disabledSystemHeaders": {
+							"user-agent": true,
+							"content-type": true
+						}
+					},
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Client-ID",
+								"value": "{{vpbx_api_key}}",
+								"type": "text"
+							},
+							{
+								"key": "X-Client-Sign",
+								"value": "{{sign}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "text/csv",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{order_id}}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}download_call_history",
+							"host": [
+								"{{url}}download_call_history"
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"protocolProfileBehavior": {}
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "c536097d-3c1c-45a1-bafc-ca752d27daea",
+				"type": "text/javascript",
+				"exec": [
+					"pm.sendRequest({",
+					"    url: 'http://gd.geobytes.com/GetCityDetails',",
+					"    method: 'POST'",
+					"},  function(err, response) {",
+					"  const jsonResponse = response.json();",
+					"",
+					"    pm.globals.set(('ip_adress'), jsonResponse.geobytesipaddress);",
+					"});",
+					"",
+					"function todayDate(date) {",
+					"    var d = new Date(),",
+					"        month = '' + (d.getMonth() + 1),",
+					"        day = '' + d.getDate(),",
+					"        year = d.getFullYear();",
+					"",
+					"    if (month.length < 2) ",
+					"        month = '0' + month;",
+					"    if (day.length < 2) ",
+					"        day = '0' + day;",
+					"",
+					"    return [year, month, day].join('-');",
+					"}",
+					"console.log(\"date_end - \" + todayDate())",
+					"pm.globals.set('date_end', todayDate())",
+					"",
+					"function weekAgo(date) {",
+					"    let d = new Date(),",
+					"        month = '' + (d.getMonth()),",
+					"        day = '' + (d.getDate() - (-10)),",
+					"        year = d.getFullYear();",
+					"",
+					"    if (month.length < 2) ",
+					"        month = '0' + month;",
+					"    if (day.length < 2) ",
+					"        day = '0' + day;",
+					"",
+					"    return [year, month, day].join('-');",
+					"}",
+					"console.log(\"date_start - \" + weekAgo())",
+					"pm.globals.set('date_start', weekAgo())",
+					"",
+					"pm.globals.set('loadUtils', function loadUtils() {",
+					"\tlet utils = {};",
+					"\tutils.signBody = function signBody() {",
+					"",
+					"\t\tsign = CryptoJS.SHA256(",
+					"\t\t\tpm.variables.get(\"vpbx_api_key\") +",
+					"\t\t\tpm.variables.get(\"json\") +",
+					"\t\t\tpm.variables.get(\"vpbx_api_salt\")",
+					"\t\t).toString();",
+					"",
+					"\t\tpm.globals.set(('sign'), sign);",
+					"",
+					"\t\tpm.variables.set(\"content_body\", (pm.variables.get(\"json\")));",
+					"",
+					"\t}",
+					"\treturn utils;",
+					"} + '; loadUtils();');"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "15deeac8-1a7e-4721-a28d-bf1f721cec62",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"id": "39431bc6-ea1a-4ab7-a227-6773bb594575",
+			"key": "vpbx_api_key",
+			"value": "19AFD59BE4F75B277F7E895D4C11C971"
+		},
+		{
+			"id": "aa84b616-789c-442a-8794-48496d1013fd",
+			"key": "vpbx_api_salt",
+			"value": "396F58153B7053EFDFAA2A594545F7FE"
+		},
+		{
+			"id": "d4727cc9-a0bb-458c-b283-8a5424a0e3e4",
+			"key": "url",
+			"value": "https://api.cloudpbx.rt.ru/"
+		}
+	],
+	"protocolProfileBehavior": {}
+}

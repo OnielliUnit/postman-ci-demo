@@ -1,0 +1,24 @@
+{
+	"id": "532f1062-2b4e-410d-8760-fa0522c05add",
+	"name": "clientAPIRostelecomVPBX",
+	"values": [
+		{
+			"key": "domain",
+			"value": "TAPIQA.20.rt.ru",
+			"enabled": true
+		},
+		{
+			"key": "user",
+			"value": "asterisk",
+			"enabled": true
+		},
+		{
+			"key": "sessionId",
+			"value": "FWmg-8VwPddbU0yC4",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2020-10-30T19:02:46.150Z",
+	"_postman_exported_using": "Postman/7.34.0"
+}
